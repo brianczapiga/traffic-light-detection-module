@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from keras.models import Model, load_model
 from keras.layers import Reshape, Lambda, Conv2D, Input, MaxPooling2D, BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
@@ -52,12 +54,13 @@ class TinyYoloFeature:
 
         self.feature_extractor = Model(input_image, x)
 
+        checkpoint = 'checkpoints' + os.path.sep + config['model']['saved_model_name']
+        if os.path.exists(checkpoint):
+          pretrained = load_model(checkpoint, custom_objects={'custom_loss': dummy_loss, 'tf': tf})
+          pretrained = pretrained.get_layer('model_1')
 
-        pretrained = load_model('checkpoints\\' + config['model']['saved_model_name'], custom_objects={'custom_loss': dummy_loss, 'tf': tf})
-        pretrained = pretrained.get_layer('model_1')
-
-        idx = 0
-        for layer in self.feature_extractor.layers:
+          idx = 0
+          for layer in self.feature_extractor.layers:
             print(layer.name)
             layer.set_weights(pretrained.get_layer(index=idx).get_weights())
             idx += 1
@@ -126,9 +129,11 @@ class YOLO(object):
         self.model = Model([input_image, self.true_boxes], output)
         self.model.summary()
 
-        pretrained = load_model('checkpoints\\' + config['model']['saved_model_name'], custom_objects={'custom_loss': self.custom_loss, 'tf': tf})
-        self.model.get_layer('DetectionLayer').set_weights(
-            pretrained.get_layer('DetectionLayer').get_weights())
+        checkpoint = 'checkpoints' + os.path.sep + config['model']['saved_model_name']
+        if os.path.exists(checkpoint):
+          pretrained = load_model(checkpoint, custom_objects={'custom_loss': self.custom_loss, 'tf': tf})
+          self.model.get_layer('DetectionLayer').set_weights(
+              pretrained.get_layer('DetectionLayer').get_weights())
 
 
     def load_weights(self, model_path):
@@ -165,7 +170,7 @@ class YOLO(object):
         validation_generator = BatchGenerator(self.config, validation_instances, jitter=False)
 
         checkpoint = ModelCheckpoint(
-            'checkpoints\\model.{epoch:02d}-{val_loss:.2f}.h5',
+            'checkpoints' + os.path.sep + 'model.{epoch:02d}-{val_loss:.2f}.h5',
             monitor='val_loss',
             verbose=1,
             save_best_only=True,
@@ -174,7 +179,7 @@ class YOLO(object):
         )
 
         checkpoint_all = ModelCheckpoint(
-            'checkpoints\\all_models.{epoch:02d}-{loss:.2f}.h5',
+            'checkpoints' + os.path.sep + 'all_models.{epoch:02d}-{loss:.2f}.h5',
             monitor='loss',
             verbose=1,
             save_best_only=True,
@@ -214,7 +219,7 @@ class YOLO(object):
 
         map_evaluator_cb = self.MAP_evaluation(self, validation_generator,
                                                save_best=True,
-                                               save_name='checkpoints\\best-mAP.h5',
+                                               save_name='checkpoints' + os.path.sep + 'best-mAP.h5',
                                                # os.path.join(BASE_DIR,'best_mAP\\weights.{epoch:02d}-{val_loss:.2f}.h5'),
                                                tensorboard=None,
                                                iou_threshold=0.4)

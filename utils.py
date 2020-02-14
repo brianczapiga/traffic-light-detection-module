@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import keras
 import cv2
@@ -5,6 +7,7 @@ import copy
 import os
 from imgaug import augmenters as iaa
 from sklearn.preprocessing import LabelEncoder
+import sys
 
 from postprocessing import interval_overlap
 
@@ -211,6 +214,10 @@ class BatchGenerator(keras.utils.Sequence):
 
     def prep_image_and_annot(self, dataset_instance, jitter):
         image_path = dataset_instance['image_path']
+        if not os.path.exists(os.path.join(IMAGES_DIR,image_path)):
+          print('image does not exist: ' + os.path.join(IMAGES_DIR,image_path))
+          sys.exit(1)
+
         image = self.load_image(os.path.join(IMAGES_DIR,image_path))
 
         h, w, c = image.shape
